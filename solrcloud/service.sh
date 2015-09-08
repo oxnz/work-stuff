@@ -1,31 +1,65 @@
 #!/usr/bin/env sh
-# 
+#
+# Copyright (c) 2015 Z <yunxinyi@gmail.com>
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer
+#    in this position and unchanged.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. The name of the author may not be used to endorse or promote products
+#    derived from this software without specific prior written permission
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+# NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+# THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+
 # ===============================================================
 #
-# Filename:	start.sh
+# Filename:	service.sh
 #
-# Author:		Oxnz
+# Author:		Z
 # Email:		yunxinyi@gmail.com
 # Created:		[2015-09-07 10:51:34 CST]
 # Last-update:	2015-09-07 10:51:34 CST
-# Description: ANCHOR
+# Description:  SolrCloud and Zookeeper service
 #
 # Version:		0.0.1
-# Revision:	[None]
+# Revision:		[None]
 # Revision history:	[None]
 # Date Author Remarks:	[None]
-#
-# License:
-# Copyright (c) 2013 Oxnz
-#
-# Distributed under terms of the [LICENSE] license.
-# [license]
 #
 # ===============================================================
 #
 
 usage() {
-	echo "Usage: $0 [start|status|stop]" >&2
+	cat >&2 << EOF
+Usage:
+	$0 [start|status|stop|status|list|init|post]
+Options:
+	start	start SolrCloud and Zookeeper
+	stop	stop SolrCloud and Zookeeper
+	restart	restart SolrCloud and Zookeeper
+	status	print the status of SolrCloud and Zookeeper
+	deploy	deploy SolrCloud and Zookeeper
+	list	list collections of SolrCloud
+	init	setup collections, shards and replications for SolrCloud
+	post	post sample data to SolrCloud
+
+EOF
 	exit 1
 }
 
@@ -57,14 +91,14 @@ main() {
 			done
 			;;
 		deploy)
-#			if [ -d "./solr-4.10.3" ]; then
-#				rm -rf "./solr-4.10.3"
-#			fi
-#			if [ -d "./zookeeper-3.4.6" ]; then
-#				rm -rf "./zookeeper-3.4.6"
-#			fi
-			#tar zxf ~/Downloads/solr-4.10.3.tgz -C .
-			#tar zxf ~/Downloads/zookeeper-3.4.6.tar.gz -C .
+			#			if [ -d "./solr-4.10.3" ]; then
+			#				rm -rf "./solr-4.10.3"
+			#			fi
+			#			if [ -d "./zookeeper-3.4.6" ]; then
+			#				rm -rf "./zookeeper-3.4.6"
+			#			fi
+			tar zxf ~/Downloads/solr-4.10.3.tgz -C .
+			tar zxf ~/Downloads/zookeeper-3.4.6.tar.gz -C .
 			for i in 1 2 3; do
 				cp zookeeper/conf/zoo_sample.cfg "zookeeper/conf/zoo${i}.cfg"
 				sed -i "s/2181/218$i/" "zookeeper/conf/zoo${i}.cfg"
