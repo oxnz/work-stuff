@@ -66,6 +66,7 @@ EOF
 main() {
 	case "$1" in
 		start)
+                        # three nodes
 			for i in 1 2 3; do
 				./zookeeper/bin/zkServer.sh start "zoo${i}.cfg"
 				if [ $? -ne 0 ]; then
