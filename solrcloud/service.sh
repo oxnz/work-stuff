@@ -95,6 +95,8 @@ main() {
 			#			if [ -d "./zookeeper-3.4.6" ]; then
 			#				rm -rf "./zookeeper-3.4.6"
 			#			fi
+			#ln -s solr-4.10.3 solr
+			#ln -s zookeeper-3.4.6 zookeeper
 			tar zxf ~/Downloads/solr-4.10.3.tgz -C .
 			tar zxf ~/Downloads/zookeeper-3.4.6.tar.gz -C .
 			for i in 1 2 3; do
