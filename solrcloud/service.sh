@@ -58,9 +58,7 @@ Options:
 	list	list collections of SolrCloud
 	init	setup collections, shards and replications for SolrCloud
 	post	post sample data to SolrCloud
-
 EOF
-	exit 1
 }
 
 main() {
@@ -127,7 +125,10 @@ main() {
 			usage
 			;;
 		*)
-			echo "Unknown option: '$1'" >&2
+			cat >&2 << EOF
+$0: Unknown option: '$1'
+Use \`$0 --help' for a complete list of options.
+EOF
 			;;
 	esac
 }
