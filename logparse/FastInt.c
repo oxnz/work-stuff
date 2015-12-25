@@ -20,8 +20,6 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <Python.h>
 
 static PyObject *FastIntError;
@@ -39,7 +37,7 @@ atoi_(PyObject *self, PyObject *args) {
 }
 
 static PyObject*
-strtoi(PyObject *self, PyObject *args) {
+toInt(PyObject *self, PyObject *args) {
 	const char *s;
 	int i = 0;
 
@@ -52,10 +50,22 @@ strtoi(PyObject *self, PyObject *args) {
 	return Py_BuildValue("i", i);
 }
 
+static PyObject*
+toLong(PyObject *self, PyObject *args) {
+	const char *s;
+	long l = 0;
+
+	if (!PyArg_ParseTuple(args, "s", &s))
+		return 0;
+	l = strtol(s, 0, 10);
+	return Py_BuildValue("l", l);
+}
+
 static PyMethodDef FastIntMethods[] =
 {
-	{"atoi", atoi_, METH_VARARGS, "string to integer"},
-	{"fastInt", strtoi, METH_VARARGS, "string to integer"},
+	{"atoi", atoi_, METH_VARARGS, "string to int"},
+	{"toInt", toInt, METH_VARARGS, "string to int"},
+	{"toLong", toLong, METH_VARARGS, "string to long"},
 	{NULL, NULL, 0, NULL} /* sentinel */
 };
 

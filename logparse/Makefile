@@ -37,8 +37,8 @@ PROFILE        := NO
 CC	:= gcc
 CXX	:= g++
 # Flags passed to the C++ compiler.
-CFLAGS	:= -Wall -Wextra
-CXXFLAGS:= -Wall -Wextra
+CFLAGS	:= -Wall -Wextra -fPIC
+CXXFLAGS:= -Wall -Wextra -fPIC
 LDFLAGS	:=
 # -pthread -lgtest
 ifeq (YES, ${DEBUG})
@@ -57,12 +57,13 @@ ifeq (YES, ${PROFILE})
 	LDFLAGS += -pg
 endif
 
-INCDIR	= /System/Library/Frameworks/Python.framework/Headers/
+INCDIR	= /usr/include/python2.6/ \
+	/System/Library/Frameworks/Python.framework/Headers/
 CFLAGS += $(addprefix -I, $(INCDIR))
 CXXFLAGS += $(addprefix -I, $(INCDIR))
 
 # ------------  name of the target  ----------------------------------------
-TARGET	:= FastInt.dylib
+TARGET	:= FastInt.so
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
 TESTS =
@@ -72,9 +73,9 @@ TESTS =
 all: $(TARGET) $(TESTS)
 
 $(TARGET): FastInt.c
-	clang $(CFLAGS) FastInt.c -c -o FastInt.o
-	clang -dynamiclib FastInt.o -o $@ -framework Python
-	ln -s $@ FastInt.so
+	$(CC) $(CFLAGS) FastInt.c -c -o FastInt.o
+	$(CC) $(LDFLAGS) -shared FastInt.o -o $@
+	#$(CC) -dynamiclib FastInt.o -o $@ -framework Python
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) $(INCDIR) $<
@@ -102,6 +103,7 @@ $(TARGET): FastInt.c
 
 clean:
 	rm -f $(TESTS) gtest.a gtest_main.a *.o
+	$(RM) FastInt.so FastInt.dylib FastInt.o
 
 install:
 
