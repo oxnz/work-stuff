@@ -50,10 +50,12 @@ def timefunc(func):
         return result
     return decorator
 
-class Task(object):
-    def __init__(self, pattern):
+#NOTICE: 12-21 00:00:00:  imas * 26706 [ÄÚÒÂµê] qry=ÄÚÒÂµê ip=223.98.252.57 rt_ip=10.128.205.21 pn=0 tn= pre=0 s=327126f4b415f974 bd=AD4890C25E3E24A41E13CF3FE2BACB44 cuid=E382D676F6FFB6674CAC94DF6C8DECD9|789195320493468 imei= idm=(2,2,0) src=915, fn=cnkang_cpr tm=(128|11447|16998|8770|0|0|0|0|0|0|0|0|0|0|0|0|15728|0|179|16421|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|9307|0|0|0|0|0|0|0|0|0|0|0|0) tt=79203 sp=(51985,8388608) inner=1 ft=37 ppq=0 csfn=(6|9) bsrn=(47|47,) amrn=47 qspn=2 ws=1 di=1(47/47|47) qs_kpi=(0|2|0) it=(0|15480|11339|16111|0|0|15152|0|0|7909|0|0|0|0|0) mem=(5)([18168263][0][0][0][0] 32M[0]) pack=333414 tmo=0 qs_cmd_time=() extra_log=fetch:9,before_write:69852,fengsui:1,all_except_conn:79216, 
+class Task(mp.Process):
+    pattern = re.compile(r'tm=\(([^)]+)\) tt=(\d+).*qspn=(\d+)')
+    def __init__(self, lines):
         super(Task, self).__init__()
-        self._pattern = pattern
+        self._lines = lines
         self._NR = 0
         self._ST = [0] * 54
 
@@ -65,10 +67,10 @@ class Task(object):
     def stat(self):
         return self._ST
 
-    def proc(self, lines):
-        for line in lines:
+    def run(self):
+        for line in self._lines:
             try:
-                m = self._pattern.search(line)
+                m = Task.pattern.search(line)
                 #FastInt.add(self._CNT, '|'.join(m.groups()))
                 self._ST = map(operator.add, self._ST,
                         map(FastInt.toInt, ('|'.join(m.groups())).split('|')))
@@ -76,23 +78,18 @@ class Task(object):
             except Exception as e:
                 print >> sys.stderr, '*** malformed line {0}'.format(e)
 
-#NOTICE: 12-21 00:00:00:  imas * 26706 [ÄÚÒÂµê] qry=ÄÚÒÂµê ip=223.98.252.57 rt_ip=10.128.205.21 pn=0 tn= pre=0 s=327126f4b415f974 bd=AD4890C25E3E24A41E13CF3FE2BACB44 cuid=E382D676F6FFB6674CAC94DF6C8DECD9|789195320493468 imei= idm=(2,2,0) src=915, fn=cnkang_cpr tm=(128|11447|16998|8770|0|0|0|0|0|0|0|0|0|0|0|0|15728|0|179|16421|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|9307|0|0|0|0|0|0|0|0|0|0|0|0) tt=79203 sp=(51985,8388608) inner=1 ft=37 ppq=0 csfn=(6|9) bsrn=(47|47,) amrn=47 qspn=2 ws=1 di=1(47/47|47) qs_kpi=(0|2|0) it=(0|15480|11339|16111|0|0|15152|0|0|7909|0|0|0|0|0) mem=(5)([18168263][0][0][0][0] 32M[0]) pack=333414 tmo=0 qs_cmd_time=() extra_log=fetch:9,before_write:69852,fengsui:1,all_except_conn:79216, 
-pattern = re.compile(
-        r'tm=\(([^)]+)\) tt=(\d+).*qspn=(\d+)'
-        )
-def proc(lines):
-    task = Task(pattern)
-    print '+ {0}'.format(task)
-    task.proc(lines)
-    print '- {0}'.format(task)
-    return task.stat
-
 @timefunc
 def parse(lines, nproc):
     nline = len(lines)
-    pool = mp.Pool(processes=nproc)
     step = (nline + nproc - 1)/nproc
-    statq = pool.map(proc, [lines[i:i+step] for i in range(0, nline, step)])
+    taskq = map(Task, [lines[i:i+step] for i in range(0, nline, step)])
+    for task in taskq:
+        task.start()
+        print '+ {0}'.format(task)
+    for task in taskq:
+        task.join()
+        print '- {0}'.format(task)
+    statq = [task.stat for task in taskq]
     stat = reduce(operator.add, map(np.array, statq))
     print 'report'.center(80, '-')
     print stat
