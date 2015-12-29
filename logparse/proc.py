@@ -21,143 +21,87 @@
 # ===============================================================
 #
 
+import os
+import re
 import sys
 import time
 import pprint
 import operator
+import functools
 import threading
-import multiprocessing as mp
 
 import FastInt
 
-def timecost(func):
+import numpy as np
+import multiprocessing as mp
+
+def timefunc(func):
     '''benchmark func'''
+    @functools.wraps(func)
     def decorator(*args, **kwargs):
         ts0 = time.clock()
+        tm0 = time.time()
         result = func(*args, **kwargs)
         ts1 = time.clock()
-        timediff = ts1 - ts0
-        print 'time cost: {0}'.format(timediff)
+        tm1 = time.time()
+        tsdiff = ts1 - ts0
+        tmdiff = tm1 - tm0
+        print 'time cost of {2}: {0} {1}'.format(tmdiff, tsdiff, func.func_name)
         return result
-
     return decorator
 
-class Task(mp.Process):
-    def __init__(self, lino, lines):
+class Task(object):
+    def __init__(self, pattern):
         super(Task, self).__init__()
-        self._lines = lines
-        self._NL = lino
-        self._TMQ = [0] * 52
-        self._TT = 0
-        self._QSPN = 0
-        self._exp = Exception('prefix or suffix not found')
+        self._pattern = pattern
+        self._NR = 0
+        self._ST = [0] * 54
 
     @property
-    def count(self):
-        return {
-                'nline':self._NL,
-                'tm':   self._TMQ,
-                'tt':   self._TT,
-                'qspn': self._QSPN,
-                }
+    def nrecord(self):
+        return self._NR
 
-    def accumulate(self, line):
-        try:
-            self._NL += 1
-            prefix = 'tm=('
-            suffix = ')'
-            b = 100
-            a = line.find(prefix, b)
-            b = line.find(suffix, a)
-            if a == -1 or b == -1:
-                raise self._exp
-            #vals = line[a + len(prefix) : b]
-            vals = line[a + 4 : b]
-            sep = '|'
-            vals = vals.split(sep)
-            vals = map(FastInt.toInt, vals)
-            self._TMQ = map(operator.add, self._TMQ, vals)
-            prefix = 'tt='
-            suffix = ' '
-            a = line.find(prefix, b)
-            b = line.find(suffix, a)
-            if a == -1 or b == -1:
-                raise self._exp
-            #self._TT += FastInt.toInt(line[a + len(prefix) : b])
-            self._TT += FastInt.toInt(line[a + 3 : b])
-            prefix = 'qspn='
-            suffix = ' '
-            a = line.find(prefix, b)
-            b = line.find(suffix, a)
-            if a == -1 or b == -1:
-                raise self._exp
-            #self._QSPN += FastInt.toInt(line[a + len(prefix) : b])
-            self._QSPN += FastInt.toInt(line[a + 5 : b])
-        except Exception as e:
-            print >> sys.stderr, '*** malformed line {0}: {1}'.format(self._NL, e)
+    @property
+    def stat(self):
+        return self._ST
 
-    def run(self):
-        map(self.accumulate, self._lines)
+    def proc(self, lines):
+        for line in lines:
+            try:
+                m = self._pattern.search(line)
+                #FastInt.add(self._CNT, '|'.join(m.groups()))
+                self._ST = map(operator.add, self._ST,
+                        map(FastInt.toInt, ('|'.join(m.groups())).split('|')))
+                self._NR += 1
+            except Exception as e:
+                print >> sys.stderr, '*** malformed line {0}'.format(e)
 
-# 2S = a1 + an
-# 2S = a1 + a1 + (n-1)d
-# 2S = 2a1 + (n-1)d
-# 2S = 2a1 + (n-1)pa1
-# 2S = a1(2 + (n-1)p)
-# a1 = 2S/n(2 + (n-1)p)
-def ranges(s, n, p):
-    if p < 0 or p > 1:
-        raise Exception('invalid percent')
-    if n > s:
-        raise Exception('invalid s or n')
-    a1 = 2*s/(n*(2 + (n-1)*p))
-    d = p * a1
-    start = 0
-    for i in range(n):
-        ai = a1 + i * d
-        step = ai
-        end = start + step
-        yield (int(start), int(end))
-        start = end
+#NOTICE: 12-21 00:00:00:  imas * 26706 [ÄÚÒÂµê] qry=ÄÚÒÂµê ip=223.98.252.57 rt_ip=10.128.205.21 pn=0 tn= pre=0 s=327126f4b415f974 bd=AD4890C25E3E24A41E13CF3FE2BACB44 cuid=E382D676F6FFB6674CAC94DF6C8DECD9|789195320493468 imei= idm=(2,2,0) src=915, fn=cnkang_cpr tm=(128|11447|16998|8770|0|0|0|0|0|0|0|0|0|0|0|0|15728|0|179|16421|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|9307|0|0|0|0|0|0|0|0|0|0|0|0) tt=79203 sp=(51985,8388608) inner=1 ft=37 ppq=0 csfn=(6|9) bsrn=(47|47,) amrn=47 qspn=2 ws=1 di=1(47/47|47) qs_kpi=(0|2|0) it=(0|15480|11339|16111|0|0|15152|0|0|7909|0|0|0|0|0) mem=(5)([18168263][0][0][0][0] 32M[0]) pack=333414 tmo=0 qs_cmd_time=() extra_log=fetch:9,before_write:69852,fengsui:1,all_except_conn:79216, 
+pattern = re.compile(
+        r'tm=\(([^)]+)\) tt=(\d+).*qspn=(\d+)'
+        )
+def proc(lines):
+    task = Task(pattern)
+    print '+ {0}'.format(task)
+    task.proc(lines)
+    print '- {0}'.format(task)
+    return task.stat
 
+@timefunc
 def parse(lines, nproc):
     nline = len(lines)
-    step = (nline + nproc - 1) / nproc
-    delta = 0.01
-    for a, b in ranges(nline, nproc, delta):
-        print '(lines[{}:{}])'.format(a, b)
-    taskq = [Task(a, lines[a:b]) for a, b in ranges(nline, nproc, 0.01)]
-    #taskq = [Task(i, lines[i:i+step]) for i in range(0, nline, step)]
-    for task in reversed(taskq):
-        print '+ {0}'.format(task)
-        task.start()
-    for task in taskq:
-        task.join()
-        print '- {0}'.format(task)
-    report(taskq)
-
-def count(stat1, stat2):
-    for key in ('tt', 'qspn'):
-        stat1[key] += stat2[key]
-    for key in ('tm'):
-        stat1['tm'] = map(operator.add, stat1['tm'], stat2['tm'])
-    return stat1
-
-def report(taskq):
-    statq = (task.count for task in taskq)
-    stat = reduce(count, statq, {
-        'tm':   [0] * 52,
-        'tt':   0,
-        'qspn': 0,
-        })
-    print '----------------------------report----------------------------'
-    pprint.pprint(stat)
-    print '=============================================================='
+    pool = mp.Pool(processes=nproc)
+    step = (nline + nproc - 1)/nproc
+    statq = pool.map(proc, [lines[i:i+step] for i in range(0, nline, step)])
+    stat = reduce(operator.add, map(np.array, statq))
+    print 'report'.center(80, '-')
+    print stat
+    print ''.center(80, '=')
 
 from getopt import (getopt, GetoptError)
 
 def help(name):
-    print 'Usage: {0} <logfile>...'.format(name)
+    print 'Usage: {0} <logfile>'.format(name)
 
 if __name__ == '__main__':
     try:
@@ -175,11 +119,10 @@ if __name__ == '__main__':
         else:
             print >> sys.stderr, 'invalid opt: {0}'.format(opt)
             sys.exit(1)
-    if len(args) == 0:
+    nargs = len(args)
+    if nargs == 0 or nargs > 1:
         help(sys.argv[0])
         sys.exit(1)
-    lines = []
-    for fpath in args:
-        with open(fpath) as f:
-            lines += f.readlines()
-    parse(lines, nproc)
+    fpath = args[0]
+    with open(fpath) as f:
+        parse(f.readlines(), nproc)
