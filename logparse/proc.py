@@ -21,6 +21,8 @@
 # ===============================================================
 #
 
+from __future__ import print_function
+
 import os
 import re
 import sys
@@ -44,7 +46,8 @@ def timefunc(func):
         tm1 = time.time()
         tsdiff = ts1 - ts0
         tmdiff = tm1 - tm0
-        print 'time cost of {2}: {0} {1}'.format(tmdiff, tsdiff, func.func_name)
+        print('time cost of {2}: real: {0}, cpu: {1}'.format(
+                tmdiff, tsdiff, func.func_name))
         return result
     return decorator
 
@@ -69,7 +72,7 @@ class Task(mp.Process):
                         map(FastInt.toInt, ('|'.join(m.groups())).split('|')))
                 NR += 1
             except Exception as e:
-                print >> sys.stderr, '*** malformed line {0}'.format(e)
+                print('*** malformed line {0}'.format(e), file=sys.stderr)
         self._queue.put([NR] + ST)
 
 @timefunc
@@ -81,28 +84,28 @@ def parse(lines, nproc):
             [lines[i:i+step] for i in range(0, nline, step)])
     for task in taskq:
         task.start()
-        print '+ {0}'.format(task)
+        print('+ {0}'.format(task))
     for task in taskq:
         task.join()
-        print '- {0}'.format(task)
+        print('- {0}'.format(task))
     statq = [queue.get() for task in taskq]
     stat = reduce(operator.add, map(np.array, statq))
     NR = stat[0]
     stat = np.array(stat[1:])/float(NR)
-    print 'report'.center(80, '-')
-    print stat
-    print ''.center(80, '=')
+    print('report'.center(80, '-'))
+    print(stat)
+    print(''.center(80, '='))
 
 from getopt import (getopt, GetoptError)
 
 def help(name):
-    print 'Usage: {0} <logfile>'.format(name)
+    print('Usage: {0} <logfile>'.format(name))
 
 if __name__ == '__main__':
     try:
         opts, args = getopt(sys.argv[1:], 'hn:', ['help', 'nproc'])
     except GetoptError as e:
-        print e
+        print(e, file=sys.stderr)
         sys.exit(1)
     nproc = mp.cpu_count()
     for opt, arg in opts:
@@ -112,7 +115,7 @@ if __name__ == '__main__':
         elif opt in ('-n', '--nproc'):
             nproc = int(arg)
         else:
-            print >> sys.stderr, 'invalid opt: {0}'.format(opt)
+            print('invalid opt: {0}'.format(opt), file=sys.stderr)
             sys.exit(1)
     nargs = len(args)
     if nargs == 0 or nargs > 1:
