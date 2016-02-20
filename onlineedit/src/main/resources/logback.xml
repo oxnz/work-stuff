@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+	<property name="log.base" value="${catalina.base}/logs" />
+	
+	<property name="default.pattern" value="%date [%thread] %-5level %logger{80}:[%line] - %msg%n"/>
+	
+	<appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<Encoding>UTF-8</Encoding>
+		<File>${log.base}/onlineedit.log</File>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${log.base}/onlineedit.%d{yyyy-MM-dd}.log</fileNamePattern>
+		</rollingPolicy>
+		<layout class="ch.qos.logback.classic.PatternLayout">
+			<pattern>${default.pattern}</pattern>
+		</layout>
+	</appender>
+
+	<appender name="onlineEditStatisticAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${catalina.base}/logs/statistic.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>${catalina.base}/logs/statistic.%d{yyyy-MM-dd}.log</fileNamePattern>
+		</rollingPolicy>
+		<layout class="ch.qos.logback.classic.PatternLayout">
+			<pattern>${default.pattern}</pattern>
+		</layout>
+	</appender>
+	
+	<logger name="onlineEditStatistic">
+		<level value="INFO"/>
+		<appender-ref ref="onlineEditStatisticAppender"/>
+	</logger>
+	<!-- project default level -->
+	<logger name="com.baidu.onlineedit">
+		<level value="INFO"></level>
+	</logger>
+	
+	<logger name="org">
+		<level value="INFO" />
+	</logger>
+	
+	<logger name="org.hibernate">
+		<level value="INFO" />
+	</logger>
+	
+	<!-- <logger name="org.hibernate.type">
+			<level value="TRACE" />
+		</logger> -->
+	
+	<logger name="org.springframework">
+		<level value="INFO" />
+	</logger>
+	
+	<root level="DEBUG">
+		<appender-ref ref="console" />
+		<appender-ref ref="file" />
+	</root>
+</configuration>
