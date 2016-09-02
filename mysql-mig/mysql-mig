@@ -1,0 +1,144 @@
+#!/bin/sh
+
+# mysql migration script
+# zhangpan05@baidu.com
+
+RESTORESH='restore.sh'
+DESTDB='172.31.14.63:3307'
+
+conf() {
+	cat <<-EOF > "$RESTORESH"
+	#!/bin/sh
+	# AUTO-GENERATED RESTORE SCRIPT, DO NOT EDIT BY HAND
+	EOF
+
+	for server in m1-iit-docs01.m1 m1-iit-docs03.m1; do
+		echo "dm:$server"
+		propf='/home/work/workdir/apps/dm/WEB-INF/classes/app.properties'
+		echo "ssh 'work@$server' bash <<< 'mv $propf{.bkp,} && echo $server:DONE'" >> "$RESTORESH"
+		ssh "work@$server" bash <<-EOF
+		if sed -i.bkp -e "/jdbc.url/s/10.44.64.41:3306/$DESTDB/" "$propf"; then
+			echo "DONE"
+		else
+			echo "FAIL"
+		fi
+		EOF
+	done
+
+	for server in m1-iit-docs02.m1; do
+		echo "cra:$server"
+		propf='/home/work/workdir/apps/cra/WEB-INF/classes/cra.properties'
+		echo "ssh 'work@$server' bash <<< 'mv $propf{.bkp,} && echo $server:DONE'" >> "$RESTORESH"
+		ssh "work@$server" bash <<-EOF
+		if sed -i.bkp -e "/datasource.url/s/m1-iit-docs01.m1.baidu.com:3306/$DESTDB/" "$propf"; then
+			echo "DONE"
+		else
+			echo "FAIL"
+		fi
+		EOF
+	done
+
+	for server in m1-iit-babel01.m1 m1-iit-babel02.m1; do
+		echo "repo:$server"
+		propf='/home/work/workdir/apps/alfresco/WEB-INF/classes/alfresco-global.properties'
+		echo "ssh 'work@$server' bash <<< 'mv $propf{.bkp,} && echo $server:DONE'" >> "$RESTORESH"
+		ssh "work@$server" bash <<-EOF
+		if sed -i.bkp -e "/db.url/s/m1-iit-docs01.m1.baidu.com:3306/$DESTDB/" "$propf"; then
+			echo "DONE"
+		else
+			echo "FAIL"
+		fi
+		EOF
+	done
+
+	for server in m1-iit-docs01.m1 m1-iit-docs03.m1; do
+		echo "onlineedit:$server"
+		propf='/home/work/workdir/apps/onlineedit/WEB-INF/classes/app.properties'
+		echo "ssh 'work@$server' bash <<< 'mv $propf{.bkp,} && echo $server:DONE'" >> "$RESTORESH"
+		ssh "work@$server" bash <<-EOF
+		if sed -i.bkp -e "/jdbc.url/s/10.44.64.41:3306/$DESTDB/" "$propf"; then
+			echo "DONE"
+		else
+			echo "FAIL"
+		fi
+		EOF
+	done
+
+	for server in m1-iit-docs01.m1 m1-iit-docs03.m1; do
+		echo "knowledge:$server"
+		propf='/home/work/workdir/apps/knowledge/WEB-INF/classes/application.properties'
+		echo "ssh 'work@$server' bash <<< 'mv $propf{.bkp,} && echo $server:DONE'" >> "$RESTORESH"
+		ssh "work@$server" bash <<-EOF
+		if sed -i.bkp -e "/jdbc.url/s/m1-iit-docs01.m1.baidu.com:3306/$DESTDB/" "$propf"; then
+			echo "DONE"
+		else
+			echo "FAIL"
+		fi
+		EOF
+	done
+}
+
+tomcat_do() {
+	case "$1" in
+		startup|shutdown)
+			local opt="$1"
+			;;
+		*)
+			echo "Invalid option: $1" >&2
+			return 1
+			;;
+	esac
+
+	local cmd="cd /home/work/local/tomcat-dm/bin && ./${opt}.sh && echo DONE || echo FAIL"
+	echo 'dm'
+	echo 'work@m1-iit-docs01.m1'
+	ssh 'work@m1-iit-docs01.m1' bash <<< "$cmd"
+	echo 'work@m1-iit-docs03.m1'
+	ssh 'work@m1-iit-docs03.m1' bash <<< "$cmd"
+
+	echo 'repo'
+	cmd="cd /home/work/local/tomcat-alfresco/bin && ./${opt}.sh && echo DONE || echo FAIL"
+	echo 'work@m1-iit-babel01.m1'
+	ssh 'work@m1-iit-babel01.m1' bash <<< "$cmd"
+	echo 'work@m1-iit-babel02.m1'
+	ssh 'work@m1-iit-babel02.m1' bash <<< "$cmd"
+
+	echo 'cra'
+	cmd="cd /home/work/local/tomcat-cra/bin && ./${opt}.sh && echo DONE || echo FAIL"
+	echo 'work@m1-iit-docs02.m1'
+	ssh 'work@m1-iit-docs02.m1' bash <<< "$cmd"
+
+	echo 'onlineedit'
+	cmd="cd /home/work/local/tomcat-onlineedit/bin && ./${opt}.sh && echo DONE || echo FAIL"
+	echo 'work@m1-iit-docs01.m1'
+	ssh 'work@m1-iit-docs01.m1' bash <<< "$cmd"
+	echo 'work@m1-iit-docs03.m1'
+	ssh 'work@m1-iit-docs03.m1' bash <<< "$cmd"
+
+	echo 'knowledge'
+	cmd="cd /home/work/local/tomcat-knowledge/bin && ./${opt}.sh && echo DONE || echo FAIL"
+	echo 'work@m1-iit-docs01.m1'
+	ssh 'work@m1-iit-docs01.m1' bash <<< "$cmd"
+	echo 'work@m1-iit-docs03.m1'
+	ssh 'work@m1-iit-docs03.m1' bash <<< "$cmd"
+}
+
+main() {
+	local opt="$1"
+	case "$opt" in
+		replace)
+			conf
+			;;
+		restore)
+			sh restore.sh
+			;;
+		startup|shutdown)
+			tomcat_do "$opt"
+			;;
+		*)
+			echo "$0 <replace|restore|startup|shutdown>"
+			;;
+	esac
+}
+
+main "$@"
