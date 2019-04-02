@@ -77,15 +77,27 @@ add(PyObject *self, PyObject *args) {
 
 static PyObject*
 addArray(PyObject *self, PyObject *args) {
+	PyListObject *list;
 	const char *s;
-	int iv, i = 0;
-	if (!PyArg_ParseTuple(args, "Os", &iv, &s))
+	if (!PyArg_ParseTuple(args, "Os", &list, &s))
 		return 0;
-	while (*s) {
-		i = i * 10 + *s - '0';
-		++s;
+	for (int i = 0; *s; ++i) {
+		int v = 0;
+		while (*s && *s != '|') {
+			v = v * 10 + *s - '0';
+			++s;
+		}
+		if (*s && *s == '|')
+			++s;
+		PyList_SetItem(list, i, PyNumber_Add(PyList_GetItem(list, i),
+					Py_BuildValue("i", v)));
 	}
-	return Py_BuildValue("i", i + iv);
+	Py_RETURN_NONE;
+}
+
+static PyObject*
+test(PyObject *self, PyObject *args) {
+	Py_RETURN_NONE;
 }
 
 static PyMethodDef FastIntMethods[] =
@@ -94,6 +106,8 @@ static PyMethodDef FastIntMethods[] =
 	{"toInt", toInt, METH_VARARGS, "string to int"},
 	{"toLong", toLong, METH_VARARGS, "string to long"},
 	{"add", add, METH_VARARGS, "add(i, s) { return i + atoi(s); }"},
+	{"addArray", addArray, METH_VARARGS, "add(list, s)"},
+	{"test", test, METH_VARARGS, "test func"},
 	{NULL, NULL, 0, NULL} /* sentinel */
 };
 

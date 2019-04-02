@@ -61,18 +61,26 @@ class Task(mp.Process):
 
     def run(self):
         PAT = Task.pattern
-        NR = 0
         ST = [0] * 54
+        NR = 0
+        NE = 0
+        NL = len(self._lines)
+        addis = FastInt.add
+        stderr = sys.stderr
+        match = PAT.search
 
         for line in self._lines:
             try:
-                m = PAT.search(line)
+                m = match(line)
+                #m = PAT.search(line)
                 #FastInt.add(self._CNT, '|'.join(m.groups()))
-                ST = map(operator.add, ST,
-                        map(FastInt.toInt, ('|'.join(m.groups())).split('|')))
+                #ST = map(addis, ST, ('|'.join(m.groups())).split('|'))
+                FastInt.addArray(ST, '|'.join(m.groups()))
+                #ST = map(addis, ST, '|'.join(m.groups()).split('|'))
                 NR += 1
             except Exception as e:
-                print('*** malformed line {0}'.format(e), file=sys.stderr)
+                print('*** malformed line {0}'.format(e), file=stderr)
+                NE += 1
         self._queue.put([NR] + ST)
 
 @timefunc
@@ -80,12 +88,11 @@ def parse(lines, nproc):
     nline = len(lines)
     step = (nline + nproc - 1)/nproc
     queue = mp.Queue()
-    taskq = map(lambda lines : Task(queue, lines),
-            [lines[i:i+step] for i in range(0, nline, step)])
+    taskq = [Task(queue, lines[i:i+step]) for i in range(0, nline, step)]
     for task in taskq:
         task.start()
         print('+ {0}'.format(task))
-    for task in taskq:
+    for task in reversed(taskq):
         task.join()
         print('- {0}'.format(task))
     statq = [queue.get() for task in taskq]
