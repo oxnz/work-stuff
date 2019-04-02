@@ -1,0 +1,89 @@
+{
+  "explain": false,
+  "from": 0,
+  "size": 50,
+  "timeout": "800ms",
+  "query": {
+    "template": {
+      "params": {
+        "query": "Q"
+      },
+      "inline": {
+        "function_score": {
+          "script_score": {
+            "script": {
+              "file": "score2",
+              "params": {
+                "t_normalize": 1,
+                "t_weight": 1,
+                "q_weight": 0,
+                "f_weight": 0,
+                "now_ts": 1480332107
+              }
+            }
+          },
+          "query": {
+            "bool": {
+              "should": [
+                {
+                  "multi_match": {
+                    "query": "{{ query }}",
+                    "fields": [
+                      "title.shingles^3",
+                      "title^2.5",
+                      "alias.shingles^2",
+                      "alias"
+                    ],
+                    "use_dis_max": true,
+                    "type": "best_fields",
+                    "tie_breaker": 0.3,
+                    "operator": "or",
+                    "boost": 1.5
+                  }
+                },
+                {
+                  "match": {
+                    "actors": "{{ query }}"
+                  }
+                }
+              ],
+              "filter": {
+                "bool": {
+                  "must": [
+                    {
+                      "multi_match": {
+                        "query": "{{query}}",
+                        "fields": [ "title", "actors", "alias" ],
+                        "minimum_should_match": "1<44%"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "boost_mode": "replace"
+        }
+      }
+    }
+  },
+  "_source": [
+    "quality",
+    "CREATE",
+    "UPDATE",
+    "media_id",
+    "data_type",
+    "id_mdsum",
+    "video_type",
+    "title",
+    "alias",
+    "actors"
+  ],
+  "highlight": {
+    "fields": {
+      "title": {},
+      "alias": {},
+      "actors": {}
+    }
+  }
+}
