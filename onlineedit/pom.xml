@@ -25,7 +25,7 @@
 	<repositories>
 		<repository>
 			<id>scmpf</id>
-			<url>http://maven.scm.baidu.com:8081/nexus/content/groups/public</url>
+			<url>https://maven.scm.baidu.com:8081/nexus/content/groups/public</url>
 			<releases>
 				<enabled>true</enabled>
 			</releases>
